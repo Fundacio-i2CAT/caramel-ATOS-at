@@ -1,0 +1,30 @@
+EXTRA
+DEFINITIONS EXPLICIT TAGS ::= BEGIN
+
+ECPoint ::= OCTET STRING
+
+SubjectPublicKeyInfo ::= SEQUENCE {
+    r ECPoint,
+    s INTEGER
+}
+
+ECDSA-Signature ::= CHOICE {
+    two-ints-plus ECDSA-Sig-Value,
+    point-int [0] ECDSA-Full-R,
+    ... -- Future representations may be added
+}
+
+FieldElement ::= OCTET STRING
+
+ECDSA-Sig-Value ::= SEQUENCE {
+    r INTEGER,
+    s INTEGER,
+    a INTEGER OPTIONAL,
+    y CHOICE { b BOOLEAN, f FieldElement } OPTIONAL
+}
+ECDSA-Full-R ::= SEQUENCE {
+    r ECPoint,
+    s INTEGER
+}
+
+END

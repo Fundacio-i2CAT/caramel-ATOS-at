@@ -1,0 +1,30 @@
+Antihacking DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+    Petition ::= CHOICE {
+        subscribe SubscribePetition,
+        publish PublishPetition,
+        newMessage NewMessagePetition,
+        alarm Alarm
+    }
+
+    SubscribePetition ::= SEQUENCE {
+        topicmqtt OCTET STRING,
+        topicregex OCTET STRING
+    }
+
+    PublishPetition ::= SEQUENCE {
+        topic OCTET STRING,
+        message OCTET STRING
+    }
+
+    NewMessagePetition ::= SEQUENCE {
+        topic OCTET STRING,
+        message OCTET STRING
+    }
+
+    Alarm ::= SEQUENCE {
+        cam OCTET STRING,
+        type INTEGER {  tampering(0), badmessage(1), gpsspoofing(2)  }
+    }
+
+END
