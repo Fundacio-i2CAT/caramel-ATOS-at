@@ -1,7 +1,9 @@
+import base64
 from this import d
-import mqtt
+import paho.mqtt.client as mqtt
 import hashlib
 import json
+import time
 
 class QueryAT:
     def __init__(self, host: str = "localhost", port: int = 1883) -> None:
@@ -18,11 +20,18 @@ class QueryAT:
         self.query_at()
         self.request_rootca()
         self.request_aa()
-        
+        time.sleep(30)
+    
+    def __del__(self):
+        print("Ending Query AT test")
+        self.client.disconnect()
 
 
     def query_at(self):
-        request = {"transaction_id": 40, "at": hashlib.sha256(b'12312341234').digest()[0:8]}
+        hash = hashlib.sha256(b'12312341234').digest()[0:8]
+        print(hash)
+        at =base64.b64encode(hash).decode()
+        request = {"transaction_id": 40, "at": at}
         self.client.publish("revocation-service/AT-query", json.dumps(request))
 
     def response_query(self, response):

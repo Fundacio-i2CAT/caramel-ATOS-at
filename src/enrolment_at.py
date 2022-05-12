@@ -16,7 +16,7 @@ class EnrolmentAT:
         self.client.connect(host, port, 60)
         self.id = 35
         self.client.on_message = self.on_message
-        self.encoder = asn1tools.compile_files('asn1/Ieee1609Dot2BaseTypes.asn')
+        self.encoder = asn1tools.compile_files('/src/asn1/Ieee1609Dot2BaseTypes.asn')
         self.keys = dict()
         self.key_index = 0
         self.client.loop_start()

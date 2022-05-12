@@ -1,1 +1,3 @@
 asn1tools
+paho-mqtt
+ecdsa
