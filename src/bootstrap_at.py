@@ -17,7 +17,7 @@ class BootstrapAT:
         self.client.connect(host, port, 60)
         self.id = 34
         self.client.on_message = self.on_message
-        self.encoder = asn1tools.compile_files('/src/asn1/Ieee1609Dot2BaseTypes.asn')
+        self.encoder = asn1tools.compile_files('/src/asn1/Ieee1609Dot2BaseTypes.asn', codec='oer')
         self.keys = dict()
         self.key_index = 0
         self.client.loop_start()
@@ -46,25 +46,31 @@ class BootstrapAT:
         self.client.publish("bootstrap-service/request", payload)
     
     def request_public_key(self, request):
-        print("REQUEST PUBLIC KEY")
         ecdsa_private_key = SigningKey.generate(curve=NIST256p)
-        pk_str = ecdsa_private_key.verifying_key.to_string()
+
+        pk = ecdsa_private_key.verifying_key
+
+        y =pk.pubkey.point.y().to_bytes(32, 'big')
+        x =pk.pubkey.point.x().to_bytes(32, 'big')
+        least_byte_y = y[len(y)-1]
+        public_key = None
+        if ((least_byte_y & 1)==1):
+            public_key = ("ecdsaNistP256", ('compressed-y-1',
+                x
+                ))
+        else:
+            public_key = ("ecdsaNistP256", ('compressed-y-0',
+                x
+                ))
+
         #storing the key
         self.keys[self.key_index] = ecdsa_private_key
         self.key_index += 1
-        
-        encoded_pk = self.encoder.encode('EccP256CurvePoint', ('uncompressedP256',
-        {
-            "x": pk_str[0:32],
-            "y": pk_str[32:64]
-        }))
+
+        encoded_pk = self.encoder.encode('PublicVerificationKey', public_key)
         base64_pk = base64.b64encode(encoded_pk).decode()
         response = {"transaction_id": request["transaction_id"], "key_id": (self.key_index-1), "data": base64_pk, "type": "verification" }
-        payload = json.dumps(response)
-        print("Publishing to:")
-        print("keygen-service/public-key")
-        print(payload)
-        self.client.publish("keygen-service/public-key", payload)
+        self.client.publish("keygen-service/public-key", json.dumps(response))
 
     def request_signature(self, request):
         print("Signature Requested")

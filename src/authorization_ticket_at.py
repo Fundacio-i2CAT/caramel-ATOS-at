@@ -16,7 +16,7 @@ class AuthorizationTicketAT:
         self.client.connect(host, port, 60)
         self.id = 36
         self.client.on_message = self.on_message
-        self.encoder = asn1tools.compile_files('/src/asn1/Ieee1609Dot2BaseTypes.asn')
+        self.encoder = asn1tools.compile_files('/src/asn1/Ieee1609Dot2BaseTypes.asn', codec = 'oer')
         self.keys = dict()
         self.key_index = 0
         self.client.loop_start()
@@ -39,13 +39,14 @@ class AuthorizationTicketAT:
         #storing the key
         self.keys[self.key_index] = ecdsa_private_key
         self.key_index += 1
-        
-        encoded_pk = self.encoder.encode('EccP256CurvePoint', ('uncompressedP256',
+
+        public_key = ("ecdsaNistP256", ('uncompressedP256',
         {
             "x": pk_str[0:32],
             "y": pk_str[32:64]
         }))
-        base64_pk = base64.b64encode(encoded_pk)
+        encoded_pk = self.encoder.encode('PublicVerificationKey', public_key)
+        base64_pk = base64.b64encode(encoded_pk).decode()
         response = {"transaction_id": request["transaction_id"], "key_id": (self.key_index-1), "data": base64_pk, "type": "verification" }
         self.client.publish("keygen-service/public-key", json.dumps(response))
 
@@ -54,12 +55,6 @@ class AuthorizationTicketAT:
         tbs = base64.b64decode(request["tbs"])
         signature = self.keys[request["key_id"]].sign(tbs)
 
-#          SignedData ::= SEQUENCE { 
-#     hashId     HashAlgorithm,
-#     tbsData    ToBeSignedData,
-#     signer     SignerIdentifier,
-#     signature  Signature
-#   }
         response_decoded = {
             "hashId" : 'sha256',
             "tbsData" : tbs,
@@ -80,8 +75,6 @@ class AuthorizationTicketAT:
         }
         self.client.publish("signature-service/signature", json.dumps(final_response))
 
-        # response {{"transaction_id": <transaction_id 1>, "signed": <B64urlsafe signed data>}} 
-        # signature-service/signature
     
     def on_message(self, client, userdata, msg):
         print(msg.topic+" "+str(msg.payload))

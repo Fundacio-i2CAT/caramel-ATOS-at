@@ -16,9 +16,9 @@ class EnrolmentAT:
         self.client.connect(host, port, 60)
         self.id = 35
         self.client.on_message = self.on_message
-        self.encoder = asn1tools.compile_files('/src/asn1/Ieee1609Dot2BaseTypes.asn')
+        self.encoder = asn1tools.compile_files('/src/asn1/Ieee1609Dot2BaseTypes.asn', codec='oer')
         self.keys = dict()
-        self.key_index = 0
+        self.key_index = 12
         self.client.loop_start()
         self.start_tests()
 
@@ -39,14 +39,30 @@ class EnrolmentAT:
         #storing the key
         self.keys[self.key_index] = ecdsa_private_key
         self.key_index += 1
-        
-        encoded_pk = self.encoder.encode('EccP256CurvePoint', ('uncompressedP256',
-        {
-            "x": pk_str[0:32],
-            "y": pk_str[32:64]
-        }))
-        base64_pk = base64.b64encode(encoded_pk)
-        response = {"transaction_id": request["transaction_id"], "key_id": (self.key_index-1), "data": base64_pk, "type": "verification" }
+
+        # PublicEncryptionKey ::= SEQUENCE { 
+        #     supportedSymmAlg  SymmAlgorithm,
+        #     publicKey         BasePublicEncryptionKey
+        # }
+
+        public_encryption_key = {
+            "supportedSymmAlg": "aes128Ccm",
+            "publicKey": ("eciesNistP256", ('uncompressedP256',
+            {
+                "x": pk_str[0:32],
+                "y": pk_str[32:64]
+            }))
+        }
+        encoded_pk = self.encoder.encode('PublicEncryptionKey', public_encryption_key)
+
+        # public_key = ("ecdsaNistP256", ('uncompressedP256',
+        # {
+        #     "x": pk_str[0:32],
+        #     "y": pk_str[32:64]
+        # }))
+        # encoded_pk = self.encoder.encode('PublicVerificationKey', public_key)
+        base64_pk = base64.b64encode(encoded_pk).decode()
+        response = {"transaction_id": request["transaction_id"], "key_id": (self.key_index-1), "data": base64_pk, "type": "encryption" }
         self.client.publish("keygen-service/public-key", json.dumps(response))
 
     def request_signature(self, request):
